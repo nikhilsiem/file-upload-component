@@ -1,107 +1,78 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FileUploader } from 'baseui/file-uploader';
-import { Block } from 'baseui/block';
-import { Notification } from 'baseui/notification';
+import { Notification, KIND } from 'baseui/notification';
+import { Button } from 'baseui/button';
 
-export default function Home() {
-  // Initial predefined files with their statuses
+const FileUpload = () => {
+  // Initialize predefined files array
   const [files, setFiles] = useState([]);
 
-  // Handle the file upload
-  const handleDrop = (acceptedFiles, rejectedFiles) => {
-    if (rejectedFiles.length > 0) {
-      const newFiles = rejectedFiles.map(file => ({
-        filename: file.name,
-        status: -1, 
-      }));
+  // Handle file upload: triggered when files are selected or dropped
+  const handleFileUpload = (acceptedFiles) => {
+    // Map the accepted files to a new array of file objects with status: 0 (Pending)
+    const newFiles = acceptedFiles.map((file) => ({
+      filename: file.name,
+      status: 0, // Default status: Pending
+    }));
 
-      // Update the file list
-      setFiles(prevFiles => [...prevFiles, ...newFiles]);
-      // If files are rejected, show an error message
-      console.error('Some files were rejected:', rejectedFiles);
-    } else {
-      // Add each accepted file to the state with a status of 0 (Pending)
-      const newFiles = acceptedFiles.map(file => ({
-        filename: file.name,
-        status: 0, // Initial status is 0 (Pending)
-      }));
+    // Add the new files to the existing files array
+    setFiles((prevFiles) => [...prevFiles, ...newFiles]);
 
-      // Update the file list
-      setFiles(prevFiles => [...prevFiles, ...newFiles]);
-    }
+    // Process each uploaded file
+    acceptedFiles.forEach((file) => {
+      handleFileProcessing(file);
+    });
   };
 
-  // Check if all files are either 1 or -1 (processed or failed)
-  const isProcessingComplete = files.every(file => file.status === 1 || file.status === -1);
+  // Render file list with status
+  const renderFileList = () => {
+    return files.map((file, index) => {
+      let statusText = 'Pending';
+      let notificationKind = KIND.info;
+
+      if (file.status === 1) {
+        statusText = 'Processed';
+        notificationKind = KIND.success;
+      } else if (file.status === -1) {
+        statusText = 'Failed';
+        notificationKind = KIND.negative;
+      }
+
+      return (
+        <div key={index} style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+          <div style={{ flex: 1 }}>
+            {file.filename} - <span>{statusText}</span>
+          </div>
+          <Notification kind={notificationKind}>{statusText}</Notification>
+        </div>
+      );
+    });
+  };
 
   return (
     <div>
-      <Block marginBottom="scale800">
-        <h1>File Upload with Status Tracking</h1>
-      </Block>
+      <h1>File Upload</h1>
 
-      {/* FileUploader component */}
-      <Block margin="scale4000">
-        <FileUploader
-          accept="image/*,application/pdf, .csv" // Allow specific file types
-          multiple={true} // Allow multiple file uploads
-          onDrop={handleDrop} // Handle file drop event
-        />
-      </Block>
-     
-      {/* Display dynamic file status */}
-      <Block marginTop="scale800">
-        <h3>Uploaded Files:</h3>
-        {files.length > 0 ? (
-          <ul>
-            {files.map((file, index) => (
-              <li key={index}>
-                <strong>{file.filename}</strong> -{' '}
-                <span style={{ color: getStatusColor(file.status) }}>
-                  {getStatusText(file.status)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No files uploaded yet.</p>
-        )}
-      </Block>
+      {/* File Uploader */}
+      <FileUploader
+        onDropAccepted={handleFileUpload}  // Triggered when files are accepted
+        multiple                            // Allow multiple files to be uploaded at once
+        overrides={{
+          DropZone: {
+            style: {
+              border: '2px dashed #4D90FE',
+              padding: '20px',
+            },
+          },
+        }}
+      />
 
-      {/* Display notification if all files are processed or failed */}
-      {isProcessingComplete && (
-        <Notification kind="positive" closeable>
-          All files have been processed.
-        </Notification>
-      )}
+      <div>
+        <h2>File List</h2>
+        {renderFileList()}  {/* Render the list of files and their statuses */}
+      </div>
     </div>
   );
+};
 
-  // Helper function to get status text
-  function getStatusText(status) {
-    switch (status) {
-      case 0:
-        return 'Pending';
-      case 1:
-        return 'Processed';
-      case -1:
-        return 'Failed';
-      default:
-        return 'Unknown';
-    }
-  }
-
-  // Helper function to get color based on status
-  function getStatusColor(status) {
-    switch (status) {
-      case 0:
-        return 'orange'; // Pending
-      case 1:
-        return 'green'; // Processed
-      case -1:
-        return 'red'; // Failed
-      default:
-        return 'gray'; // Unknown
-    }
-  }
-}
+export default FileUpload;
